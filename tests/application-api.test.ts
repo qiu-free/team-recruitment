@@ -19,6 +19,15 @@ describe('project and application workflow', () => {
     await app.close();
   });
 
+  it('returns project and role labels in the application history', async () => {
+    const { app, cookie } = await loggedIn('bob');
+    const response = await app.inject({ method: 'GET', url: '/api/applications/mine', headers: { cookie } });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().applications[0]).toMatchObject({ projectTitle: '校园智能导览', roleName: '前端开发' });
+    await app.close();
+  });
+
   it('prevents duplicate pending applications and keeps submitted profile snapshot', async () => {
     const { app: bobApp, cookie: bobCookie } = await loggedIn('bob');
     const first = await bobApp.inject({ method: 'POST', url: '/api/projects/project_paused/applications', headers: { cookie: bobCookie }, payload: { roleId: 'role_paused_data', reason: '我喜欢数据', contribution: '负责图表' } });

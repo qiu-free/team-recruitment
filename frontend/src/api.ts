@@ -1,10 +1,13 @@
-export type User = {
-  id: string;
-  username: string;
+export type Profile = {
   nickname: string;
   bio: string;
   skills: string[];
   weeklyHours: number;
+};
+
+export type User = Profile & {
+  id: string;
+  username: string;
 };
 
 export type Role = {
@@ -47,10 +50,12 @@ export type Application = {
   status: 'pending' | 'approved' | 'rejected' | 'withdrawn';
   rejectionReason: string | null;
   createdAt: string;
+  projectTitle?: string;
+  roleName?: string;
 };
 
 export type ProjectDetail = Project & {
-  ownerProfile: User;
+  ownerProfile: Profile;
   members: Array<{
     id: string;
     userId: string;

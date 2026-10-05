@@ -47,4 +47,14 @@ describe('frontend delivery contract', () => {
     expect(source).not.toContain('JOIN THIS PROJECT');
     expect(source).not.toContain('PROJECT LEAD');
   });
+
+  it('uses product-facing Chinese copy for the login and workspace surfaces', () => {
+    const source = readFileSync(new URL('../frontend/src/App.tsx', import.meta.url), 'utf8');
+    expect(source).toContain('登录组队集市');
+    expect(source).toContain('找到适合你的');
+    expect(source).toContain('项目发起人');
+    expect(source).not.toContain('PROJECT MARKET');
+    expect(source).not.toContain('REAL');
+    expect(source).not.toContain('TEAM MARKET');
+  });
 });

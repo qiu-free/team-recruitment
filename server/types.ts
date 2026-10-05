@@ -58,6 +58,8 @@ export type Application = {
   rejectionReason: string | null;
   reviewedAt: string | null;
   createdAt: string;
+  projectTitle?: string;
+  roleName?: string;
 };
 
 export type ProjectFilters = {

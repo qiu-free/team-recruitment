@@ -86,7 +86,8 @@ export class MemoryStore implements Store {
       return { ...member, user: { id: user.id, username: user.username, nickname: user.nickname, skills: user.skills } };
     });
     const applications = project.ownerId === viewerId ? this.applications.filter((application) => application.projectId === id) : this.applications.filter((application) => application.projectId === id && application.applicantId === viewerId);
-    return { ...summary, ownerProfile: this.users.find((user) => user.id === project.ownerId)!, members, applications };
+    const ownerUser = this.users.find((user) => user.id === project.ownerId)!;
+    return { ...summary, ownerProfile: { nickname: ownerUser.nickname, bio: ownerUser.bio, skills: ownerUser.skills, weeklyHours: ownerUser.weeklyHours }, members, applications };
   }
 
   async createProject(input: CreateProjectInput) {
@@ -105,7 +106,13 @@ export class MemoryStore implements Store {
     return project;
   }
 
-  async listMyApplications(applicantId: string) { return this.applications.filter((application) => application.applicantId === applicantId); }
+  async listMyApplications(applicantId: string) {
+    return this.applications.filter((application) => application.applicantId === applicantId).map((application) => ({
+      ...application,
+      projectTitle: this.projects.find((project) => project.id === application.projectId)?.title,
+      roleName: this.roles.find((role) => role.id === application.roleId)?.name
+    }));
+  }
 
   async listProjectApplications(projectId: string, ownerId: string) {
     const project = this.projects.find((candidate) => candidate.id === projectId);

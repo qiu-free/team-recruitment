@@ -32,4 +32,13 @@ describe('authentication and profile API', () => {
     expect(response.json().profile).toMatchObject({ nickname: '周予安·新版', weeklyHours: 9, skills: ['React', '测试'] });
     await app.close();
   });
+
+  it('does not expose the owner password hash in public project details', async () => {
+    const { app, cookie } = await loggedInApp();
+    const response = await app.inject({ method: 'GET', url: '/api/projects/project_open', headers: { cookie } });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().project.ownerProfile).not.toHaveProperty('passwordHash');
+    await app.close();
+  });
 });

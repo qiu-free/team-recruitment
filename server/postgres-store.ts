@@ -47,6 +47,10 @@ function application(row: DbApplication): Application {
   return { id: row.id, projectId: row.project_id, applicantId: row.applicant_id, roleId: row.role_id, reason: row.reason, contribution: row.contribution, profileSnapshot: row.profile_snapshot, status: row.status, rejectionReason: row.rejection_reason, reviewedAt: asString(row.reviewed_at), createdAt: asString(row.created_at)! };
 }
 
+function applicationWithLabels(row: DbApplication & { project_title: string; role_name: string }): Application {
+  return { ...application(row), projectTitle: row.project_title, roleName: row.role_name };
+}
+
 async function one<T extends QueryResultRow>(client: Pool | PoolClient, text: string, values: unknown[]): Promise<T | null> {
   const result = await client.query<T>(text, values);
   return result.rows[0] ?? null;
@@ -131,8 +135,8 @@ export class PostgresStore implements Store {
   }
 
   async listMyApplications(applicantId: string) {
-    const rows = (await this.pool.query<DbApplication>('SELECT * FROM applications WHERE applicant_id = $1 ORDER BY created_at DESC', [applicantId])).rows;
-    return rows.map(application);
+    const rows = (await this.pool.query<DbApplication & { project_title: string; role_name: string }>(`SELECT a.*, p.title AS project_title, r.name AS role_name FROM applications a JOIN projects p ON p.id = a.project_id JOIN project_roles r ON r.id = a.role_id WHERE a.applicant_id = $1 ORDER BY a.created_at DESC`, [applicantId])).rows;
+    return rows.map(applicationWithLabels);
   }
 
   async listProjectApplications(projectId: string, ownerId: string) {
