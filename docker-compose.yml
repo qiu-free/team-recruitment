@@ -1,0 +1,30 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: team_recruitment
+      POSTGRES_USER: team_user
+      POSTGRES_PASSWORD: team_password
+    volumes:
+      - team-recruitment-data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U team_user -d team_recruitment"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  app:
+    build: .
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgres://team_user:team_password@db:5432/team_recruitment
+      SESSION_SECRET: ${SESSION_SECRET:-demo-only-change-me}
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  team-recruitment-data:

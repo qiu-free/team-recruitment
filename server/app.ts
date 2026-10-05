@@ -1,6 +1,9 @@
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
 import cookie from '@fastify/cookie';
+import fastifyStatic from '@fastify/static';
+import { existsSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
+import { join } from 'node:path';
 import type { AppOptions, CreateApplicationInput, CreateProjectInput, Profile, Store } from './types';
 import { createDemoStore } from './memory-store';
 import { hashPassword, verifyPassword } from './security';
@@ -62,6 +65,11 @@ export async function createApp(options: AppOptions = {}): Promise<FastifyInstan
   await app.register(cookie);
   const store: Store = options.store ?? createDemoStore();
   const sessions = new Map<string, string>();
+
+  const clientRoot = join(process.cwd(), 'dist', 'client');
+  if (existsSync(clientRoot)) {
+    await app.register(fastifyStatic, { root: clientRoot, wildcard: false });
+  }
 
   app.addHook('onRequest', async (request) => {
     const token = request.cookies[sessionCookie];
