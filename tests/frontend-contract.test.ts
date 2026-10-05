@@ -66,4 +66,11 @@ describe('frontend delivery contract', () => {
     expect(styles).toContain('flex: 0 0 240px');
     expect(styles).toContain('grid-template-columns: 28px 72px 1fr');
   });
+
+  it('reserves a safe area between the login headline and decorative sticker', () => {
+    const styles = readFileSync(new URL('../frontend/src/styles.css', import.meta.url), 'utf8');
+    expect(styles).toContain('max-width: min(650px, calc(100% - 150px))');
+    expect(styles).toContain('.login-visual .sticker');
+    expect(styles).toContain('pointer-events: none');
+  });
 });
