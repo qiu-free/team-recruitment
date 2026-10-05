@@ -26,21 +26,23 @@ CREATE TABLE IF NOT EXISTS project_roles (
   project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   skills JSONB NOT NULL DEFAULT '[]'::jsonb,
-  capacity INTEGER NOT NULL CHECK (capacity > 0)
+  capacity INTEGER NOT NULL CHECK (capacity > 0),
+  UNIQUE(project_id, id)
 );
 
 CREATE TABLE IF NOT EXISTS applications (
   id TEXT PRIMARY KEY,
   project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   applicant_id TEXT NOT NULL REFERENCES users(id),
-  role_id TEXT NOT NULL REFERENCES project_roles(id),
+  role_id TEXT NOT NULL,
   reason TEXT NOT NULL,
   contribution TEXT NOT NULL,
   profile_snapshot JSONB NOT NULL,
   status TEXT NOT NULL CHECK (status IN ('pending', 'approved', 'rejected', 'withdrawn')),
   rejection_reason TEXT,
   reviewed_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  FOREIGN KEY (project_id, role_id) REFERENCES project_roles(project_id, id)
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS applications_one_pending_per_user_project
@@ -50,10 +52,11 @@ CREATE TABLE IF NOT EXISTS project_members (
   id TEXT PRIMARY KEY,
   project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   user_id TEXT NOT NULL REFERENCES users(id),
-  role_id TEXT REFERENCES project_roles(id),
+  role_id TEXT,
   is_owner BOOLEAN NOT NULL DEFAULT FALSE,
   joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE(project_id, user_id)
+  UNIQUE(project_id, user_id),
+  FOREIGN KEY (project_id, role_id) REFERENCES project_roles(project_id, id)
 );
 
 CREATE INDEX IF NOT EXISTS projects_owner_idx ON projects(owner_id);

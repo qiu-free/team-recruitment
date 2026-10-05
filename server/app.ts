@@ -23,7 +23,7 @@ function errorStatus(code: string): number {
   if (code === 'FORBIDDEN' || code === 'OWNER_CANNOT_APPLY' || code === 'RECRUITMENT_PAUSED') return 403;
   if (code === 'NOT_FOUND' || code === 'PROJECT_NOT_FOUND' || code === 'USER_NOT_FOUND') return 404;
   if (code === 'ROLE_FULL') return 409;
-  if (code === 'PENDING_APPLICATION_EXISTS' || code === 'ALREADY_MEMBER' || code === 'APPLICATION_ALREADY_PROCESSED') return 409;
+  if (code === 'PENDING_APPLICATION_EXISTS' || code === 'ALREADY_MEMBER' || code === 'APPLICATION_ALREADY_PROCESSED' || code === 'INCONSISTENT_APPROVAL') return 409;
   return 400;
 }
 

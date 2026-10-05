@@ -84,6 +84,27 @@ npm run build
 
 当前自动化测试覆盖：筛选规则、角色余量、预置素材、登录、资料更新、重复申请、暂停招募、申请撤回、权限审核、重复审核和一名额两申请竞争。
 
+完整验收记录模板见 `tests/acceptance-checklist.md`，其中包含 TEAM-01 到 TEAM-10 的操作、预期结果和实际结果栏。提交前应在 Docker 环境中补齐真实 PostgreSQL 和数据卷重建结果。
+
+## Docker 验收记录
+
+验收机需要 Docker Engine 正常运行。检查命令：
+
+```bash
+docker version
+docker compose version
+```
+
+当前开发机的 Docker CLI 和 Compose 已安装，但 Docker Linux Engine 尚未启动，因此尚未声称 Docker 构建、数据库初始化和数据卷重建通过。Engine 启动后执行：
+
+```bash
+docker compose up --build -d
+docker compose ps
+docker compose logs app
+```
+
+完成 TEAM-01 到 TEAM-10 后，执行 `docker compose down` 再 `docker compose up -d`，填写 `tests/acceptance-checklist.md` 的实际结果。不要使用 `docker compose down -v`。
+
 ## 数据和权限设计
 
 - 发起人作为项目成员展示，但不占招募角色名额。

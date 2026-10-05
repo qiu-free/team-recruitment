@@ -114,15 +114,14 @@ export class PostgresStore implements Store {
   }
 
   async createProject(input: CreateProjectInput) {
-    return withTransaction(this.pool, async (client) => {
+    const projectId = newId('project');
+    await withTransaction(this.pool, async (client) => {
       const createdAt = now();
-      const projectId = newId('project');
       await client.query('INSERT INTO projects (id, owner_id, title, goal, progress, expected_outcome, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7)', [projectId, input.ownerId, input.title, input.goal, input.progress, input.expectedOutcome, createdAt]);
       await client.query('INSERT INTO project_members (id, project_id, user_id, is_owner, joined_at) VALUES ($1, $2, $3, TRUE, $4)', [newId('member'), projectId, input.ownerId, createdAt]);
       for (const inputRole of input.roles) await client.query('INSERT INTO project_roles (id, project_id, name, skills, capacity) VALUES ($1, $2, $3, $4::jsonb, $5)', [newId('role'), projectId, inputRole.name, JSON.stringify(inputRole.skills), inputRole.capacity]);
-      const created = await one<DbProject>(client, 'SELECT * FROM projects WHERE id = $1', [projectId]);
-      return this.makeSummary(client, created!, input.ownerId).then(async (summary) => ({ ...summary, ownerProfile: (await this.getUserById(input.ownerId))!, members: [], applications: [] }));
-    }) as Promise<ProjectDetail>;
+    });
+    return (await this.getProject(projectId, input.ownerId))!;
   }
 
   async setRecruitmentPaused(projectId: string, ownerId: string, paused: boolean) {
