@@ -95,7 +95,7 @@ docker version
 docker compose version
 ```
 
-当前开发机的 Docker CLI 和 Compose 已安装，但 Docker Linux Engine 尚未启动，因此尚未声称 Docker 构建、数据库初始化和数据卷重建通过。Engine 启动后执行：
+当前项目已完成 Docker 构建、PostgreSQL 初始化、核心流程和保留数据卷重建验证。验收环境启动 Engine 后执行：
 
 ```bash
 docker compose up --build -d
@@ -103,7 +103,7 @@ docker compose ps
 docker compose logs app
 ```
 
-完成 TEAM-01 到 TEAM-10 后，执行 `docker compose down` 再 `docker compose up -d`，填写 `tests/acceptance-checklist.md` 的实际结果。不要使用 `docker compose down -v`。
+验收记录见 `tests/acceptance-checklist.md`。数据卷重建验证使用了 `docker compose down` 后再执行 `docker compose up -d`，项目、申请、成员和角色余量均可继续读取。不要使用 `docker compose down -v`，除非要清空数据重新初始化。
 
 ## 数据和权限设计
 
