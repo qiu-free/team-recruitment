@@ -73,4 +73,13 @@ describe('frontend delivery contract', () => {
     expect(styles).toContain('.login-visual .sticker');
     expect(styles).toContain('pointer-events: none');
   });
+
+  it('uses grouped markup for the login and discovery summary typography', () => {
+    const source = readFileSync(new URL('../frontend/src/App.tsx', import.meta.url), 'utf8');
+    expect(source).toContain('className="login-title"');
+    expect(source).not.toContain('找到适合你的<br />');
+    expect(source).toContain('className="hero-note-arrow"');
+    expect(source).toContain('className="hero-note-count"');
+    expect(source).toContain('className="hero-note-label"');
+  });
 });

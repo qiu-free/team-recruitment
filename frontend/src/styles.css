@@ -113,10 +113,14 @@ em, .login-card h2, .project-card h3, .history-row h3 { font-family: 'Noto Serif
 .history-row .history-role { color: var(--coral); font-size: 11px; }
  .hero-note { flex: 0 0 240px; display: grid; grid-template-columns: 28px 72px 1fr; gap: 0 12px; align-items: center; min-height: 92px; padding: 16px 18px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); box-shadow: 0 10px 30px rgba(20,47,43,.05); }
  .hero-note strong { grid-row: auto; font-size: 44px; line-height: 1; }
- .hero-note .note-arrow { align-self: start; padding-top: 2px; }
- .hero-note > span:last-child { color: var(--muted); line-height: 1.55; }
+  .hero-note .hero-note-arrow { align-self: start; padding-top: 2px; color: var(--coral); font-size: 22px; }
+  .hero-note .hero-note-count { color: var(--forest); font: 700 44px/1 'Playfair Display', Georgia, serif; }
+  .hero-note .hero-note-label { color: var(--muted); line-height: 1.55; }
  @media (max-width: 650px) { .hero-note { width: 100%; min-height: auto; grid-template-columns: 24px 64px 1fr; margin-top: 25px; } }
   .login-visual h1 { max-width: min(650px, calc(100% - 150px)); }
+  .login-title { display: grid; gap: 6px; max-width: min(650px, calc(100% - 170px)); }
+  .login-title span, .login-title em { display: block; }
+  .login-title em { white-space: nowrap; }
   .login-visual .sticker { pointer-events: none; }
   @media (max-width: 900px) { .login-visual h1 { max-width: min(650px, calc(100% - 120px)); } }
-  @media (max-width: 650px) { .login-visual h1 { max-width: 100%; padding-right: 0; }.login-visual .sticker { top: auto; right: 12%; bottom: 28px; width: 82px; height: 82px; font-size: 9px; } }
+  @media (max-width: 650px) { .login-visual h1 { max-width: 100%; padding-right: 0; }.login-title { gap: 2px; font-size: clamp(40px, 13vw, 68px); }.login-title em { white-space: normal; }.login-visual .sticker { top: auto; right: 12%; bottom: 28px; width: 82px; height: 82px; font-size: 9px; } }
