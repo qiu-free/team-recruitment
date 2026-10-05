@@ -17,4 +17,12 @@ describe('frontend delivery contract', () => {
     expect(entry).toContain('<App />');
     expect(entry).not.toContain('项目招募 Demo 正在启动');
   });
+
+  it('uses a distinct collaboration-focused visual system', () => {
+    const styles = readFileSync(new URL('../frontend/src/styles.css', import.meta.url), 'utf8');
+    expect(styles).toContain('--forest');
+    expect(styles).toContain('--sun');
+    expect(styles).toContain('.app-shell::before');
+    expect(styles).toContain('.project-card:hover');
+  });
 });

@@ -4,6 +4,7 @@ import fastifyStatic from '@fastify/static';
 import { existsSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { AppOptions, CreateApplicationInput, CreateProjectInput, Profile, Store } from './types';
 import { createDemoStore } from './memory-store';
 import { hashPassword, verifyPassword } from './security';
@@ -13,6 +14,10 @@ type IdRequest = FastifyRequest<{ Params: { id: string } }>;
 type ProjectApplicationRequest = FastifyRequest<{ Params: { id: string } }>;
 
 const sessionCookie = 'team_session';
+
+export function resolveClientRoot(): string {
+  return join(fileURLToPath(new URL('.', import.meta.url)), '..', 'dist', 'client');
+}
 
 function errorStatus(code: string): number {
   if (code === 'FORBIDDEN' || code === 'OWNER_CANNOT_APPLY' || code === 'RECRUITMENT_PAUSED') return 403;
@@ -66,7 +71,7 @@ export async function createApp(options: AppOptions = {}): Promise<FastifyInstan
   const store: Store = options.store ?? createDemoStore();
   const sessions = new Map<string, string>();
 
-  const clientRoot = join(process.cwd(), 'dist', 'client');
+  const clientRoot = resolveClientRoot();
   if (existsSync(clientRoot)) {
     await app.register(fastifyStatic, { root: clientRoot, wildcard: false });
   }
