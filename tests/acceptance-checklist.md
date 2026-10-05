@@ -1,6 +1,6 @@
 # 题目 7 验收清单
 
-> 当前 Docker PostgreSQL 验收基线使用题目要求的三个预置项目；容器使用 named volume `110_team-recruitment-data`。历史临时验收项目已清理。
+> 当前 Docker PostgreSQL 验收基线使用题目要求的三个预置项目；实际 named volume 为 `110_team-recruitment-data`。历史临时验收项目已清理。
 
 ## 测试素材
 
@@ -76,10 +76,10 @@
 
 - 操作：创建项目、申请、审核成员后执行 `docker compose down`，再执行 `docker compose up -d`。
 - 预期：项目、申请、成员、审核状态和角色余量保持一致。
-- 实际结果：通过。执行 `docker compose down`（未使用 `-v`）后再次 `docker compose up -d`；app 重新启动，db 显示 `healthy`，健康接口返回 `200`；测试项目仍可读取，重建后读取到成员 2 条、申请 4 条、角色余量保持一致。
+- 实际结果：通过。当前干净基线包含 3 个项目、4 条成员记录（3 个发起人和 1 个已加入成员）及 2 条待审核申请。执行 `docker compose down`（未使用 `-v`）后再次 `docker compose up -d`；app 重新启动，db 显示 `healthy`，健康接口返回 `200`；三个项目、成员数、申请状态和角色余量保持一致。
 
 ## TEAM-12 交付验证
 
 - 命令：`npm run build`、`npm test`、`docker compose up --build`。
 - 预期：测试通过，镜像构建成功，应用可访问，初始化自动完成。
-- 实际结果：上次 Docker 记录为 31/31；本轮修改后需在验收环境重新执行 `npm test`、`npm run build` 和 `docker compose up --build -d`，并记录新的测试数量与并发结果。
+- 实际结果：通过。`npm test` 自动执行构建并通过，10 个测试文件、39 个测试用例全部通过；`npm run build` 成功；`docker compose up --build -d` 成功构建并启动 app/db，db 为 `healthy`；`/api/health` 返回 `200 {"ok":true,"service":"team-recruitment"}`；`docker compose exec app npm run verify:postgres` 通过，真实 PostgreSQL 并发审核最终一人通过、一人返回 `ROLE_FULL`，没有超额成员。

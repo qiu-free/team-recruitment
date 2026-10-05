@@ -92,7 +92,7 @@ docker compose exec app npm run verify:postgres
 
 脚本会创建临时项目，真实并发接受两条申请，确认最终一条成功、一条 `ROLE_FULL`，并在结束后删除临时项目。
 
-完整验收记录模板见 `tests/acceptance-checklist.md`，其中包含附件 TEAM-01 到 TEAM-11 的操作、预期结果和实际结果栏。提交前应在 Docker 环境中补齐真实 PostgreSQL 和数据卷重建结果。
+完整验收记录见 `tests/acceptance-checklist.md`，其中包含附件 TEAM-01 到 TEAM-11 及交付验证的操作、预期结果和实际结果。
 
 ## Docker 验收记录
 
@@ -111,7 +111,7 @@ docker compose ps
 docker compose logs app
 ```
 
-验收记录见 `tests/acceptance-checklist.md`。数据卷重建验证使用了 `docker compose down` 后再执行 `docker compose up -d`，项目、申请、成员和角色余量均可继续读取。不要使用 `docker compose down -v`，除非要清空数据重新初始化。
+验收记录见 `tests/acceptance-checklist.md`。本轮验证使用 named volume `110_team-recruitment-data`；执行 `docker compose down` 后再执行 `docker compose up -d`，项目、申请、成员和角色余量均可继续读取。不要使用 `docker compose down -v`，除非要清空数据重新初始化。
 
 若验收操作已经改变预置素材状态，需要恢复干净基线时执行 `docker compose down -v && docker compose up --build -d`。该命令会删除当前业务数据，只应在重新开始验收时使用。数据库初始化脚本只在新数据卷首次创建时执行。
 
