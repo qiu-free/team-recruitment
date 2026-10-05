@@ -90,4 +90,11 @@ describe('frontend delivery contract', () => {
     expect(styles).toContain('font-size: clamp(42px, 5vw, 76px)');
     expect(styles).toContain('font-size: clamp(38px, 4.6vw, 68px)');
   });
+
+  it('keeps dark application fields readable while typing', () => {
+    const styles = readFileSync(new URL('../frontend/src/styles.css', import.meta.url), 'utf8');
+    expect(styles).toContain('.apply-card input::placeholder');
+    expect(styles).toContain('.apply-card textarea::placeholder');
+    expect(styles).toContain('caret-color: var(--sun)');
+  });
 });

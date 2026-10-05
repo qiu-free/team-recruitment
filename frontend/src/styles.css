@@ -126,3 +126,6 @@ em, .login-card h2, .project-card h3, .history-row h3 { font-family: 'Noto Serif
   .login-visual .sticker { pointer-events: none; }
   @media (max-width: 900px) { .login-visual h1 { max-width: min(650px, calc(100% - 120px)); } }
   @media (max-width: 650px) { .login-visual h1 { max-width: 100%; padding-right: 0; }.login-title { gap: 2px; font-size: clamp(40px, 13vw, 68px); }.login-title em { white-space: normal; }.login-visual .sticker { top: auto; right: 12%; bottom: 28px; width: 82px; height: 82px; font-size: 9px; } }
+  .apply-card input, .apply-card textarea, .apply-card select { color: #fffaf0; background: rgba(255,255,255,.035); caret-color: var(--sun); }
+  .apply-card input::placeholder, .apply-card textarea::placeholder { color: rgba(255,250,240,.62); opacity: 1; }
+  .apply-card input:focus, .apply-card textarea:focus, .apply-card select:focus { color: #fffaf0; border-color: var(--sun); background: rgba(255,255,255,.09); box-shadow: 0 0 0 3px rgba(240,200,75,.18); }
