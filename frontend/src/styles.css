@@ -120,6 +120,7 @@ em, .login-card h2, .project-card h3, .history-row h3 { font-family: 'Noto Serif
   .login-visual h1 { max-width: min(650px, calc(100% - 150px)); }
   .login-title { display: grid; gap: 6px; max-width: min(650px, calc(100% - 170px)); }
    .login-title { font-size: clamp(42px, 5vw, 76px); }
+   .login-title span, .login-title em { font-size: clamp(38px, 4.6vw, 68px); }
   .login-title span, .login-title em { display: block; }
   .login-title em { white-space: nowrap; }
   .login-visual .sticker { pointer-events: none; }

@@ -88,5 +88,6 @@ describe('frontend delivery contract', () => {
     expect(styles).toContain('.login-title span, .login-title em');
     expect(styles).toContain('white-space: nowrap');
     expect(styles).toContain('font-size: clamp(42px, 5vw, 76px)');
+    expect(styles).toContain('font-size: clamp(38px, 4.6vw, 68px)');
   });
 });
