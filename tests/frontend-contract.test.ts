@@ -97,4 +97,18 @@ describe('frontend delivery contract', () => {
     expect(styles).toContain('.apply-card textarea::placeholder');
     expect(styles).toContain('caret-color: var(--sun)');
   });
+
+  it('supports adding and removing multiple recruitment roles in the publish form', () => {
+    const source = readFileSync(new URL('../frontend/src/App.tsx', import.meta.url), 'utf8');
+    expect(source).toContain('roles.map');
+    expect(source).toContain('添加招募角色');
+    expect(source).toContain('删除角色');
+  });
+
+  it('renders explicit project load failures and existing application states', () => {
+    const source = readFileSync(new URL('../frontend/src/App.tsx', import.meta.url), 'utf8');
+    expect(source).toContain('projectError');
+    expect(source).toContain('你已提交待审核申请');
+    expect(source).toContain('你已经是本项目成员');
+  });
 });

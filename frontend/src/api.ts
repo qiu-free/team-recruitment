@@ -92,11 +92,12 @@ export const api = {
   logout: () => request<{ ok: true }>('/auth/logout', { method: 'POST' }),
   me: () => request<{ user: User }>('/auth/me'),
   updateProfile: (profile: Omit<User, 'id' | 'username'>) => request<{ profile: User }>('/profile', { method: 'PATCH', body: JSON.stringify(profile) }),
-  projects: (filters: { keyword?: string; role?: string; skills?: string[] }) => {
+  projects: (filters: { keyword?: string; role?: string; skills?: string[]; ownedBy?: string }) => {
     const params = new URLSearchParams();
     if (filters.keyword) params.set('keyword', filters.keyword);
     if (filters.role) params.set('role', filters.role);
     if (filters.skills?.length) params.set('skills', filters.skills.join(','));
+    if (filters.ownedBy) params.set('ownedBy', filters.ownedBy);
     return request<{ projects: Project[] }>(`/projects?${params}`);
   },
   project: (id: string) => request<{ project: ProjectDetail }>(`/projects/${id}`),

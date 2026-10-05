@@ -37,6 +37,7 @@ describe('application review rules', () => {
     expect(first.statusCode).toBe(200);
     expect(second.statusCode).toBe(200);
     expect(second.json().result.alreadyProcessed).toBe(true);
+    expect(second.json().result.member.id).toBeTruthy();
     const project = await app.inject({ method: 'GET', url: '/api/projects/project_open', headers: { cookie } });
     expect(project.json().project.members.filter((member: { userId: string }) => member.userId === 'user_b')).toHaveLength(1);
     await app.close();

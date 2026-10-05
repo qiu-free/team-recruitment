@@ -94,4 +94,16 @@ describe('project and application workflow', () => {
     expect(project.json().project.applications[0].reason).toBe('我正在学习前端，也能负责可视化部分。');
     await app.close();
   });
+
+  it('returns friendly validation errors for malformed project and application input', async () => {
+    const { app, cookie } = await loggedIn('alice');
+    const project = await app.inject({ method: 'POST', url: '/api/projects', headers: { cookie }, payload: { title: '', goal: 'x', progress: 'x', expectedOutcome: 'x', roles: [] } });
+    expect(project.statusCode).toBe(400);
+    expect(project.json()).toMatchObject({ error: 'INVALID_PROJECT', message: '项目内容不完整。' });
+
+    const application = await app.inject({ method: 'POST', url: '/api/projects/project_open/applications', headers: { cookie }, payload: { roleId: 'role_open_research', reason: '', contribution: '' } });
+    expect(application.statusCode).toBe(400);
+    expect(application.json()).toMatchObject({ error: 'INVALID_APPLICATION', message: '请完整填写申请理由和可承担内容。' });
+    await app.close();
+  });
 });

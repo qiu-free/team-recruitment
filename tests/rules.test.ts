@@ -14,6 +14,11 @@ describe('project filtering rules', () => {
     expect(filterProjects(projects, { role: '前端', skills: ['Python'] })).toHaveLength(0);
   });
 
+  it('matches normalized skill labels without treating a different label as a match', () => {
+    const withReactNative = [{ ...projects[0], roles: [{ ...projects[0].roles[0], skills: ['React Native'] }] }];
+    expect(filterProjects(withReactNative, { skills: ['React'] })).toHaveLength(0);
+  });
+
   it('calculates remaining capacity without counting the owner', () => {
     expect(remainingCapacity(projects[0].roles[0], [{ roleId: null }])).toBe(1);
     expect(remainingCapacity(projects[0].roles[0], [{ roleId: null }, { roleId: 'r1' }])).toBe(0);

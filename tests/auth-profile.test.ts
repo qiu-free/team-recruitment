@@ -16,6 +16,7 @@ describe('authentication and profile API', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json().user).toMatchObject({ username: 'bob', nickname: '周予安' });
+    expect(cookie?.toString()).not.toContain('Secure');
     await app.close();
   });
 
@@ -40,5 +41,16 @@ describe('authentication and profile API', () => {
     expect(response.statusCode).toBe(200);
     expect(response.json().project.ownerProfile).not.toHaveProperty('passwordHash');
     await app.close();
+  });
+
+  it('keeps a valid session after the app process is recreated', async () => {
+    const first = await loggedInApp('bob');
+    const second = await createApp({ store: createDemoStore() });
+    const response = await second.inject({ method: 'GET', url: '/api/auth/me', headers: { cookie: first.cookie } });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().user.username).toBe('bob');
+    await first.app.close();
+    await second.close();
   });
 });

@@ -16,13 +16,13 @@ export function filterProjects<T extends FilterableProject>(projects: T[], filte
   const skills = (filters.skills ?? []).map(normalized).filter(Boolean);
 
   return projects.filter((project) => {
-    const keywordMatch = !keyword || [project.title, project.goal, project.progress, project.expectedOutcome]
+    const keywordMatch = !keyword || [project.title, project.goal]
       .some((field) => normalized(field).includes(keyword));
     if (!keywordMatch) return false;
 
     return project.roles.some((candidate) => {
       const roleMatch = !role || normalized(candidate.name).includes(role);
-      const skillMatch = skills.every((required) => candidate.skills.some((skill) => normalized(skill).includes(required)));
+      const skillMatch = skills.every((required) => candidate.skills.some((skill) => normalized(skill) === required));
       return roleMatch && skillMatch;
     });
   });

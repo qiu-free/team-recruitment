@@ -2,7 +2,7 @@ import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest }
 import cookie from '@fastify/cookie';
 import fastifyStatic from '@fastify/static';
 import { existsSync } from 'node:fs';
-import { randomBytes } from 'node:crypto';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { AppOptions, CreateApplicationInput, CreateProjectInput, Profile, Store } from './types';
@@ -20,6 +20,7 @@ export function resolveClientRoot(): string {
 }
 
 function errorStatus(code: string): number {
+  if (code === 'UNAUTHORIZED') return 401;
   if (code === 'FORBIDDEN' || code === 'OWNER_CANNOT_APPLY' || code === 'RECRUITMENT_PAUSED') return 403;
   if (code === 'NOT_FOUND' || code === 'PROJECT_NOT_FOUND' || code === 'USER_NOT_FOUND') return 404;
   if (code === 'ROLE_FULL') return 409;
@@ -29,24 +30,62 @@ function errorStatus(code: string): number {
 
 function sendError(reply: FastifyReply, error: unknown) {
   const code = error instanceof Error ? error.message : 'BAD_REQUEST';
-  return reply.code(errorStatus(code)).send({ error: code, message: friendlyError(code) });
+  const known = new Set([
+    'FORBIDDEN', 'OWNER_CANNOT_APPLY', 'RECRUITMENT_PAUSED', 'NOT_FOUND', 'PROJECT_NOT_FOUND',
+    'USER_NOT_FOUND', 'ROLE_FULL', 'PENDING_APPLICATION_EXISTS', 'ALREADY_MEMBER',
+    'APPLICATION_ALREADY_PROCESSED', 'INCONSISTENT_APPROVAL', 'UNAUTHORIZED', 'INVALID_CREDENTIALS',
+    'INVALID_PROFILE', 'INVALID_PROJECT', 'INVALID_APPLICATION', 'INVALID_RECRUITMENT_STATUS',
+    'REJECTION_REASON_REQUIRED'
+  ]);
+  const safeCode = known.has(code) ? code : 'BAD_REQUEST';
+  return reply.code(errorStatus(safeCode)).send({ error: safeCode, message: friendlyError(safeCode) });
 }
 
 function friendlyError(code: string): string {
   const messages: Record<string, string> = {
     OWNER_CANNOT_APPLY: '项目发起人不能申请加入自己的项目。',
     RECRUITMENT_PAUSED: '项目目前暂停招募，暂不接收新申请。',
-    ROLE_FULL: '该角色名额已满，当前申请仍未改变其他申请状态。',
+    ROLE_FULL: '该角色名额已满，请选择仍有余量的角色或稍后再试。',
     PENDING_APPLICATION_EXISTS: '你在本项目已有一条待审核申请。',
     ALREADY_MEMBER: '你已经是本项目成员。',
     APPLICATION_ALREADY_PROCESSED: '这条申请已经处理，不能重复操作。',
     FORBIDDEN: '你没有权限执行此操作。',
     UNAUTHORIZED: '请先登录。',
     INVALID_CREDENTIALS: '账号或密码错误。',
+    INVALID_PROFILE: '个人资料格式不正确，请检查昵称、技能和每周时间。',
+    INVALID_PROJECT: '项目内容不完整。',
+    INVALID_APPLICATION: '请完整填写申请理由和可承担内容。',
+    INVALID_RECRUITMENT_STATUS: '招募状态参数不正确。',
+    REJECTION_REASON_REQUIRED: '请填写拒绝原因。',
+    INCONSISTENT_APPROVAL: '申请与成员记录不一致，请刷新后重试。',
+    USER_NOT_FOUND: '用户不存在。',
     PROJECT_NOT_FOUND: '项目不存在。',
     NOT_FOUND: '请求的数据不存在。'
   };
   return messages[code] ?? code;
+}
+
+const sessionLifetimeSeconds = 60 * 60 * 8;
+const sessionSecret = () => process.env.SESSION_SECRET || 'local-development-session-secret';
+
+function signSession(userId: string, expiresAt: number): string {
+  const payload = `${userId}.${expiresAt}`;
+  const signature = createHmac('sha256', sessionSecret()).update(payload).digest('base64url');
+  return `${payload}.${signature}`;
+}
+
+function verifySession(token: string | undefined): string | undefined {
+  if (!token) return undefined;
+  const parts = token.split('.');
+  if (parts.length !== 3) return undefined;
+  const [userId, expiresAtText, signature] = parts;
+  const expiresAt = Number(expiresAtText);
+  if (!userId || !Number.isInteger(expiresAt) || expiresAt <= Math.floor(Date.now() / 1000)) return undefined;
+  const expected = createHmac('sha256', sessionSecret()).update(`${userId}.${expiresAt}`).digest('base64url');
+  const actualBuffer = Buffer.from(signature);
+  const expectedBuffer = Buffer.from(expected);
+  if (actualBuffer.length !== expectedBuffer.length || !timingSafeEqual(actualBuffer, expectedBuffer)) return undefined;
+  return userId;
 }
 
 function requireUserId(request: FastifyRequest, reply: FastifyReply): string | null {
@@ -61,7 +100,7 @@ function requireUserId(request: FastifyRequest, reply: FastifyReply): string | n
 function profileFromBody(body: Partial<Profile>): Profile {
   const skills = Array.isArray(body.skills) ? body.skills.map(String).map((skill) => skill.trim()).filter(Boolean) : [];
   const weeklyHours = Number(body.weeklyHours ?? 0);
-  if (!String(body.nickname ?? '').trim() || !Number.isInteger(weeklyHours) || weeklyHours < 0 || weeklyHours > 168) throw new Error('INVALID_PROFILE');
+  if (!String(body.nickname ?? '').trim() || String(body.nickname).trim().length > 80 || String(body.bio ?? '').trim().length > 1000 || skills.length > 30 || skills.some((skill) => skill.length > 40) || !Number.isInteger(weeklyHours) || weeklyHours < 0 || weeklyHours > 168) throw new Error('INVALID_PROFILE');
   return { nickname: String(body.nickname).trim(), bio: String(body.bio ?? '').trim(), skills, weeklyHours };
 }
 
@@ -69,8 +108,6 @@ export async function createApp(options: AppOptions = {}): Promise<FastifyInstan
   const app = Fastify({ logger: false });
   await app.register(cookie);
   const store: Store = options.store ?? createDemoStore();
-  const sessions = new Map<string, string>();
-
   const clientRoot = resolveClientRoot();
   if (existsSync(clientRoot)) {
     await app.register(fastifyStatic, { root: clientRoot, wildcard: false });
@@ -78,7 +115,7 @@ export async function createApp(options: AppOptions = {}): Promise<FastifyInstan
 
   app.addHook('onRequest', async (request) => {
     const token = request.cookies[sessionCookie];
-    if (token) (request as FastifyRequest & { userId?: string }).userId = sessions.get(token);
+    (request as FastifyRequest & { userId?: string }).userId = verifySession(token);
   });
 
   app.get('/api/health', async () => ({ ok: true, service: 'team-recruitment' }));
@@ -88,15 +125,12 @@ export async function createApp(options: AppOptions = {}): Promise<FastifyInstan
     const password = String(request.body?.password ?? '');
     const user = await store.getUserByUsername(username);
     if (!user || !verifyPassword(password, user.passwordHash)) return sendError(reply, new Error('INVALID_CREDENTIALS'));
-    const token = randomBytes(24).toString('hex');
-    sessions.set(token, user.id);
-    reply.setCookie(sessionCookie, token, { httpOnly: true, sameSite: 'lax', path: '/', maxAge: 60 * 60 * 8 });
+    const token = signSession(user.id, Math.floor(Date.now() / 1000) + sessionLifetimeSeconds);
+    reply.setCookie(sessionCookie, token, { httpOnly: true, sameSite: 'lax', secure: process.env.COOKIE_SECURE === 'true', path: '/', maxAge: sessionLifetimeSeconds });
     return { user: publicUser(user) };
   });
 
   app.post('/api/auth/logout', async (request, reply) => {
-    const token = request.cookies[sessionCookie];
-    if (token) sessions.delete(token);
     reply.clearCookie(sessionCookie, { path: '/' });
     return { ok: true };
   });
@@ -139,9 +173,9 @@ export async function createApp(options: AppOptions = {}): Promise<FastifyInstan
     if (!userId) return;
     try {
       const body = request.body;
-      if (!body?.title?.trim() || !body.goal?.trim() || !body.progress?.trim() || !body.expectedOutcome?.trim() || !Array.isArray(body.roles) || body.roles.length === 0) throw new Error('INVALID_PROJECT');
-      if (body.roles.some((role) => !role.name?.trim() || !Array.isArray(role.skills) || role.skills.length === 0 || !Number.isInteger(role.capacity) || role.capacity < 1)) throw new Error('INVALID_PROJECT');
-      return { project: await store.createProject({ ...body, ownerId: userId }) };
+      if (!body?.title?.trim() || body.title.trim().length > 120 || !body.goal?.trim() || body.goal.trim().length > 3000 || !body.progress?.trim() || body.progress.trim().length > 3000 || !body.expectedOutcome?.trim() || body.expectedOutcome.trim().length > 3000 || !Array.isArray(body.roles) || body.roles.length === 0 || body.roles.length > 30) throw new Error('INVALID_PROJECT');
+      if (body.roles.some((role) => !role.name?.trim() || role.name.trim().length > 80 || !Array.isArray(role.skills) || role.skills.length === 0 || role.skills.length > 30 || role.skills.some((skill) => String(skill).trim().length === 0 || String(skill).trim().length > 40) || !Number.isInteger(role.capacity) || role.capacity < 1 || role.capacity > 999)) throw new Error('INVALID_PROJECT');
+      return { project: await store.createProject({ title: body.title.trim(), goal: body.goal.trim(), progress: body.progress.trim(), expectedOutcome: body.expectedOutcome.trim(), roles: body.roles.map((role) => ({ name: role.name.trim(), skills: role.skills.map((skill) => String(skill).trim()).filter(Boolean), capacity: role.capacity })), ownerId: userId }) };
     } catch (error) {
       return sendError(reply, error);
     }
@@ -187,8 +221,8 @@ export async function createApp(options: AppOptions = {}): Promise<FastifyInstan
     if (!userId) return;
     try {
       const body = request.body;
-      if (!body?.roleId || !body.reason?.trim() || !body.contribution?.trim()) throw new Error('INVALID_APPLICATION');
-      return reply.code(201).send({ application: await store.createApplication({ ...body, projectId: request.params.id, applicantId: userId }) });
+      if (!body?.roleId || body.roleId.length > 200 || !body.reason?.trim() || body.reason.trim().length > 2000 || !body.contribution?.trim() || body.contribution.trim().length > 2000) throw new Error('INVALID_APPLICATION');
+      return reply.code(201).send({ application: await store.createApplication({ roleId: body.roleId, reason: body.reason.trim(), contribution: body.contribution.trim(), projectId: request.params.id, applicantId: userId }) });
     } catch (error) {
       return sendError(reply, error);
     }
@@ -219,7 +253,7 @@ export async function createApp(options: AppOptions = {}): Promise<FastifyInstan
     if (!userId) return;
     try {
       const reason = String(request.body?.reason ?? '').trim();
-      if (!reason) throw new Error('REJECTION_REASON_REQUIRED');
+      if (!reason || reason.length > 500) throw new Error('REJECTION_REASON_REQUIRED');
       return { application: await store.rejectApplication(request.params.id, userId, reason) };
     } catch (error) {
       return sendError(reply, error);

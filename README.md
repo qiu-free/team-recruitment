@@ -82,9 +82,9 @@ npm test
 npm run build
 ```
 
-当前自动化测试覆盖：筛选规则、角色余量、预置素材、登录、资料更新、重复申请、暂停招募、申请撤回、权限审核、重复审核和一名额两申请竞争。
+当前自动化测试覆盖：筛选规则、角色余量、预置素材、登录、资料更新、重复申请、暂停招募、申请撤回、权限审核、重复审核和一名额两申请竞争。`npm test` 会先构建前端产物，再执行测试，干净环境可直接运行。
 
-完整验收记录模板见 `tests/acceptance-checklist.md`，其中包含 TEAM-01 到 TEAM-10 的操作、预期结果和实际结果栏。提交前应在 Docker 环境中补齐真实 PostgreSQL 和数据卷重建结果。
+完整验收记录模板见 `tests/acceptance-checklist.md`，其中包含附件 TEAM-01 到 TEAM-11 的操作、预期结果和实际结果栏。提交前应在 Docker 环境中补齐真实 PostgreSQL 和数据卷重建结果。
 
 ## Docker 验收记录
 
@@ -105,6 +105,8 @@ docker compose logs app
 
 验收记录见 `tests/acceptance-checklist.md`。数据卷重建验证使用了 `docker compose down` 后再执行 `docker compose up -d`，项目、申请、成员和角色余量均可继续读取。不要使用 `docker compose down -v`，除非要清空数据重新初始化。
 
+若验收操作已经改变预置素材状态，需要恢复干净基线时执行 `docker compose down -v && docker compose up --build -d`。该命令会删除当前业务数据，只应在重新开始验收时使用。数据库初始化脚本只在新数据卷首次创建时执行。
+
 ## 数据和权限设计
 
 - 发起人作为项目成员展示，但不占招募角色名额。
@@ -118,6 +120,7 @@ docker compose logs app
 
 - 前端：React + Vite + TypeScript；后端：Fastify + TypeScript；数据库：PostgreSQL；部署：Docker Compose。
 - 页面字体使用 Google Fonts 的 Manrope、DM Mono 和 Playfair Display；如果验收环境无法访问字体 CDN，会回退到本地字体，不影响功能。
-- Demo 会话暂存在应用内存，重启应用后需要重新登录；业务项目、申请、成员和审核结果存储在 PostgreSQL 卷中。
-- 预置账号密码仅用于本题 Demo，不适用于生产环境。
+- Demo 会话使用服务端签名 HttpOnly Cookie，签名密钥由 `SESSION_SECRET` 配置；过期后需要重新登录。业务项目、申请、成员和审核结果存储在 PostgreSQL 卷中。
+- 本地 HTTP 验收保持 `COOKIE_SECURE=false`；只有通过 HTTPS 反向代理时才设置为 `true`。
+- 预置账号密码仅用于本题 Demo；当前密码哈希为 SHA-256，不适用于生产环境。
 - 暂不实现注册、验证码、找回密码、即时聊天、附件、自动匹配、成员退出/踢出和发布后调整角色名额。

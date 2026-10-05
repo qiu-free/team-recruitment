@@ -20,11 +20,13 @@ services:
       PORT: 3000
       DATABASE_URL: postgres://team_user:team_password@db:5432/team_recruitment
       SESSION_SECRET: ${SESSION_SECRET:-demo-only-change-me}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
     ports:
       - "3000:3000"
     depends_on:
       db:
         condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   team-recruitment-data:
