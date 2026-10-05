@@ -111,3 +111,8 @@ em, .login-card h2, .project-card h3, .history-row h3 { font-family: 'Noto Serif
 .snapshot-details { display: grid; gap: 4px; margin: 12px 0; padding: 10px 12px; border-left: 3px solid var(--sky); background: #f8faf6; color: var(--muted); font-size: 11px; line-height: 1.5; }
 .snapshot-details p { margin: 0; color: var(--forest); font-size: 12px; }
 .history-row .history-role { color: var(--coral); font-size: 11px; }
+ .hero-note { flex: 0 0 240px; display: grid; grid-template-columns: 28px 72px 1fr; gap: 0 12px; align-items: center; min-height: 92px; padding: 16px 18px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); box-shadow: 0 10px 30px rgba(20,47,43,.05); }
+ .hero-note strong { grid-row: auto; font-size: 44px; line-height: 1; }
+ .hero-note .note-arrow { align-self: start; padding-top: 2px; }
+ .hero-note > span:last-child { color: var(--muted); line-height: 1.55; }
+ @media (max-width: 650px) { .hero-note { width: 100%; min-height: auto; grid-template-columns: 24px 64px 1fr; margin-top: 25px; } }

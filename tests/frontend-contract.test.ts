@@ -57,4 +57,13 @@ describe('frontend delivery contract', () => {
     expect(source).not.toContain('REAL');
     expect(source).not.toContain('TEAM MARKET');
   });
+
+  it('keeps the discovery summary readable and free of campaign copy', () => {
+    const source = readFileSync(new URL('../frontend/src/App.tsx', import.meta.url), 'utf8');
+    const styles = readFileSync(new URL('../frontend/src/styles.css', import.meta.url), 'utf8');
+    expect(source).not.toContain('/ 07');
+    expect(source).not.toContain('真实项目');
+    expect(styles).toContain('flex: 0 0 240px');
+    expect(styles).toContain('grid-template-columns: 28px 72px 1fr');
+  });
 });
