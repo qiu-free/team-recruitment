@@ -82,4 +82,11 @@ describe('frontend delivery contract', () => {
     expect(source).toContain('className="hero-note-count"');
     expect(source).toContain('className="hero-note-label"');
   });
+
+  it('keeps the primary login headline from breaking into single-character lines', () => {
+    const styles = readFileSync(new URL('../frontend/src/styles.css', import.meta.url), 'utf8');
+    expect(styles).toContain('.login-title span, .login-title em');
+    expect(styles).toContain('white-space: nowrap');
+    expect(styles).toContain('font-size: clamp(42px, 5vw, 76px)');
+  });
 });
