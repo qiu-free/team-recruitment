@@ -84,6 +84,14 @@ npm run build
 
 当前自动化测试覆盖：筛选规则、角色余量、预置素材、登录、资料更新、重复申请、暂停招募、申请撤回、权限审核、重复审核和一名额两申请竞争。`npm test` 会先构建前端产物，再执行测试，干净环境可直接运行。
 
+真实 PostgreSQL 并发验证可在 Compose app 容器中执行：
+
+```bash
+docker compose exec app npm run verify:postgres
+```
+
+脚本会创建临时项目，真实并发接受两条申请，确认最终一条成功、一条 `ROLE_FULL`，并在结束后删除临时项目。
+
 完整验收记录模板见 `tests/acceptance-checklist.md`，其中包含附件 TEAM-01 到 TEAM-11 的操作、预期结果和实际结果栏。提交前应在 Docker 环境中补齐真实 PostgreSQL 和数据卷重建结果。
 
 ## Docker 验收记录

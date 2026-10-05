@@ -34,7 +34,7 @@
 
 - 操作：alice 在两个浏览器会话同时接受 bob/cathy 的前端申请。
 - 预期：最终最多一个成员；角色余量为 0；成功申请为 approved，失败方仍为 pending 并得到名额已满提示。
-- 实际结果：通过。Docker PostgreSQL 两个并发接受请求返回 `200` 和 `409`；最终角色 `joinedCount=1`、`remaining=0`；两个申请状态为 `approved,pending`，没有超额成员。
+- 实际结果：通过。Docker PostgreSQL 两个并发接受请求返回 `200` 和 `409`；最终角色 `joinedCount=1`、`remaining=0`；两个申请状态为 `approved,pending`，没有超额成员。可用 `docker compose exec app npm run verify:postgres` 重复执行真实数据库验证，脚本会自动清理临时项目。
 
 ## TEAM-05 重复审核
 

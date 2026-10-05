@@ -179,10 +179,15 @@ export class PostgresStore implements Store {
 
   async approveApplication(applicationId: string, ownerId: string) {
     return withTransaction(this.pool, async (client) => {
+      // Keep the same project -> role -> application lock order as createApplication.
+      const reference = await one<Pick<DbApplication, 'project_id' | 'role_id'>>(client, 'SELECT project_id, role_id FROM applications WHERE id = $1', [applicationId]);
+      if (!reference) throw new Error('NOT_FOUND');
+      const project = await one<DbProject>(client, 'SELECT * FROM projects WHERE id = $1 FOR UPDATE', [reference.project_id]);
+      if (!project) throw new Error('PROJECT_NOT_FOUND');
+      const roleRow = await one<DbRole>(client, 'SELECT * FROM project_roles WHERE id = $1 AND project_id = $2 FOR UPDATE', [reference.role_id, reference.project_id]);
+      if (!roleRow) throw new Error('NOT_FOUND');
       const row = await one<DbApplication>(client, 'SELECT * FROM applications WHERE id = $1 FOR UPDATE', [applicationId]);
       if (!row) throw new Error('NOT_FOUND');
-      const project = await one<DbProject>(client, 'SELECT * FROM projects WHERE id = $1', [row.project_id]);
-      if (!project) throw new Error('PROJECT_NOT_FOUND');
       if (project.owner_id !== ownerId) throw new Error('FORBIDDEN');
       if (row.status === 'approved') {
         const existing = await one<DbMember>(client, 'SELECT * FROM project_members WHERE project_id = $1 AND user_id = $2', [row.project_id, row.applicant_id]);
@@ -190,8 +195,6 @@ export class PostgresStore implements Store {
         return { application: application(row), member: member(existing), alreadyProcessed: true };
       }
       if (row.status !== 'pending') throw new Error('APPLICATION_ALREADY_PROCESSED');
-      const roleRow = await one<DbRole>(client, 'SELECT * FROM project_roles WHERE id = $1 FOR UPDATE', [row.role_id]);
-      if (!roleRow) throw new Error('NOT_FOUND');
       const existing = await one<DbMember>(client, 'SELECT * FROM project_members WHERE project_id = $1 AND user_id = $2', [row.project_id, row.applicant_id]);
       if (existing) throw new Error('ALREADY_MEMBER');
       const count = await one<{ count: string }>(client, 'SELECT COUNT(*)::text AS count FROM project_members WHERE project_id = $1 AND role_id = $2', [row.project_id, row.role_id]);

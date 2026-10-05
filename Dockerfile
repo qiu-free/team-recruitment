@@ -15,6 +15,7 @@ RUN npm ci --omit=dev && addgroup -S appgroup && adduser -S appuser -G appgroup
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/server ./server
 COPY --from=build /app/db ./db
+COPY --from=build /app/scripts ./scripts
 USER appuser
 
 EXPOSE 3000

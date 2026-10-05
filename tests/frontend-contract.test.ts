@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
+import { getApplicationPanelState } from '../frontend/src/application-state';
 
 describe('frontend delivery contract', () => {
   it('contains the user-facing workflow sections and server feedback hooks', () => {
@@ -110,5 +111,21 @@ describe('frontend delivery contract', () => {
     expect(source).toContain('projectError');
     expect(source).toContain('你已提交待审核申请');
     expect(source).toContain('你已经是本项目成员');
+  });
+
+  it('uses the latest effective application state after re-application', () => {
+    expect(getApplicationPanelState([
+      { applicantId: 'user_b', status: 'rejected', roleId: 'role_a' },
+      { applicantId: 'user_b', status: 'pending', roleId: 'role_b' }
+    ], 'user_b')).toMatchObject({ kind: 'pending', roleId: 'role_b' });
+    expect(getApplicationPanelState([
+      { applicantId: 'user_b', status: 'withdrawn', roleId: 'role_a' },
+      { applicantId: 'user_b', status: 'approved', roleId: 'role_b' }
+    ], 'user_b')).toMatchObject({ kind: 'approved', roleId: 'role_b' });
+  });
+
+  it('shows the owner weekly availability in the project detail card', () => {
+    const source = readFileSync(new URL('../frontend/src/App.tsx', import.meta.url), 'utf8');
+    expect(source).toContain('每周可投入：{project.ownerProfile.weeklyHours} 小时');
   });
 });
