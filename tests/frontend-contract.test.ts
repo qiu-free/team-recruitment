@@ -25,4 +25,26 @@ describe('frontend delivery contract', () => {
     expect(styles).toContain('.app-shell::before');
     expect(styles).toContain('.project-card:hover');
   });
+
+  it('provides a visible back action for every secondary workspace view', () => {
+    const source = readFileSync(new URL('../frontend/src/App.tsx', import.meta.url), 'utf8');
+    expect(source).toContain('function PageBack');
+    expect(source.match(/<PageBack/g)?.length).toBeGreaterThanOrEqual(4);
+  });
+
+  it('keeps page headings free of sentence-ending punctuation', () => {
+    const source = readFileSync(new URL('../frontend/src/App.tsx', import.meta.url), 'utf8');
+    const headings = [...source.matchAll(/<h[12][^>]*>([\s\S]*?)<\/h[12]>/g)]
+      .map((match) => match[1].replace(/<[^>]+>/g, ''))
+      .filter((heading) => !heading.includes('{'));
+    expect(headings.length).toBeGreaterThan(3);
+    expect(headings.every((heading) => !/[。！？.!?]/u.test(heading))).toBe(true);
+  });
+
+  it('keeps secondary navigation and interface copy consistent', () => {
+    const source = readFileSync(new URL('../frontend/src/App.tsx', import.meta.url), 'utf8');
+    expect(source).toContain("view === 'created' && selectedId");
+    expect(source).not.toContain('JOIN THIS PROJECT');
+    expect(source).not.toContain('PROJECT LEAD');
+  });
 });
