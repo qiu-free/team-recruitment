@@ -1,9 +1,10 @@
 import { createApp } from './app';
-import { createPool, createPostgresStore } from './db';
+import { createPool, createPostgresStore, ensureSessionVersionColumn } from './db';
 import { createDemoStore } from './memory-store';
 
 const port = Number(process.env.PORT ?? 3000);
 const pool = process.env.DATABASE_URL ? createPool() : null;
+if (pool) await ensureSessionVersionColumn(pool);
 const app = await createApp({ store: pool ? createPostgresStore(pool) : createDemoStore() });
 
 await app.listen({ port, host: '0.0.0.0' });
