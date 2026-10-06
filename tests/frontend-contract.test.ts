@@ -128,4 +128,14 @@ describe('frontend delivery contract', () => {
     const source = readFileSync(new URL('../frontend/src/App.tsx', import.meta.url), 'utf8');
     expect(source).toContain('每周可投入：{project.ownerProfile.weeklyHours} 小时');
   });
+
+  it('makes project cards keyboard accessible', () => {
+    const source = readFileSync(new URL('../frontend/src/App.tsx', import.meta.url), 'utf8');
+    const styles = readFileSync(new URL('../frontend/src/styles.css', import.meta.url), 'utf8');
+    expect(source).toContain('role="button"');
+    expect(source).toContain('tabIndex={0}');
+    expect(source).toContain("event.key === 'Enter'");
+    expect(source).toContain("event.key === ' '");
+    expect(styles).toContain('.project-card:focus-visible');
+  });
 });

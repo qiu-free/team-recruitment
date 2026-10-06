@@ -86,6 +86,7 @@ nav { display: flex; gap: 30px; }
 .filter-bar input { border: 0; background: var(--paper); }.search-field { display: flex; align-items: center; background: var(--paper); }.search-field span { padding-left: 13px; font-size: 22px; }.search-field input { padding-left: 8px; }
 .project-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .project-card { position: relative; min-height: 330px; display: flex; flex-direction: column; padding: 25px; border: 1px solid var(--forest); border-radius: 4px; background: var(--paper); cursor: pointer; transition: transform .25s, box-shadow .25s; animation: rise .45s both; }
+.project-card:focus-visible { outline: 3px solid var(--coral); outline-offset: 4px; }
 .project-card:nth-child(2) { animation-delay: .08s; }.project-card:nth-child(3) { animation-delay: .16s; }.project-card:hover { transform: translateY(-6px) rotate(-.5deg); box-shadow: 8px 10px 0 var(--forest); }
 .project-card.coral { background: #f4b29e; }.project-card.blue { background: var(--sky); }.project-card.yellow { background: var(--sun); }
 @keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
