@@ -31,6 +31,7 @@ docker compose up -d
 
 ```bash
 npm install
+set SESSION_SECRET=replace-with-at-least-32-random-characters
 npm run build
 npm start
 ```

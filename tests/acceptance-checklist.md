@@ -82,4 +82,4 @@
 
 - 命令：`npm run build`、`npm test`、`docker compose up --build`。
 - 预期：测试通过，镜像构建成功，应用可访问，初始化自动完成。
-- 实际结果：通过。`npm test` 自动执行构建并通过，10 个测试文件、39 个测试用例全部通过；`npm run build` 成功；`docker compose up --build -d` 成功构建并启动 app/db，db 为 `healthy`；`/api/health` 返回 `200 {"ok":true,"service":"team-recruitment"}`；`docker compose exec app npm run verify:postgres` 通过，真实 PostgreSQL 并发审核最终一人通过、一人返回 `ROLE_FULL`，没有超额成员。
+- 实际结果：本地代码验证通过。`npm test` 自动执行构建并通过，11 个测试文件、46 个测试用例全部通过；`npm run build` 成功；`git diff --check` 通过。Docker 构建、健康检查和真实 PostgreSQL 并发验证需要在 Docker Desktop Engine 启动后重新执行；本次工作区检查时 Engine 未运行，不能把旧记录当作本轮修复后的实测结果。
