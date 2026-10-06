@@ -16,6 +16,7 @@ export type User = Profile & {
   id: string;
   username: string;
   passwordHash: string;
+  sessionVersion: number;
 };
 
 export type Project = {
@@ -109,6 +110,7 @@ export type Store = {
   getUserById(id: string): Promise<User | null>;
   getUserByUsername(username: string): Promise<User | null>;
   updateProfile(id: string, profile: Profile): Promise<User>;
+  invalidateSessions(id: string): Promise<void>;
   listProjects(filters: ProjectFilters, viewerId: string): Promise<ProjectSummary[]>;
   getProject(id: string, viewerId: string): Promise<ProjectDetail | null>;
   createProject(input: CreateProjectInput): Promise<ProjectDetail>;

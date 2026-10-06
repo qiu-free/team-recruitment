@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS users (
   bio TEXT NOT NULL DEFAULT '',
   skills JSONB NOT NULL DEFAULT '[]'::jsonb,
   weekly_hours INTEGER NOT NULL DEFAULT 0 CHECK (weekly_hours BETWEEN 0 AND 168),
+  session_version INTEGER NOT NULL DEFAULT 0 CHECK (session_version >= 0),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

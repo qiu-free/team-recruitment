@@ -9,7 +9,7 @@ import type {
 
 type DbUser = {
   id: string; username: string; password_hash: string; nickname: string; bio: string;
-  skills: string[]; weekly_hours: number;
+  skills: string[]; weekly_hours: number; session_version: number;
 };
 type DbProject = {
   id: string; owner_id: string; title: string; goal: string; progress: string;
@@ -28,7 +28,7 @@ function asString(value: Date | string | null): string | null {
 }
 
 function user(row: DbUser): User {
-  return { id: row.id, username: row.username, passwordHash: row.password_hash, nickname: row.nickname, bio: row.bio, skills: row.skills ?? [], weeklyHours: row.weekly_hours };
+  return { id: row.id, username: row.username, passwordHash: row.password_hash, nickname: row.nickname, bio: row.bio, skills: row.skills ?? [], weeklyHours: row.weekly_hours, sessionVersion: row.session_version ?? 0 };
 }
 
 function project(row: DbProject): Project {
@@ -73,6 +73,11 @@ export class PostgresStore implements Store {
     const row = await one<DbUser>(this.pool, `UPDATE users SET nickname = $2, bio = $3, skills = $4::jsonb, weekly_hours = $5, updated_at = NOW() WHERE id = $1 RETURNING *`, [id, profile.nickname, profile.bio, JSON.stringify(profile.skills), profile.weeklyHours]);
     if (!row) throw new Error('USER_NOT_FOUND');
     return user(row);
+  }
+
+  async invalidateSessions(id: string) {
+    const result = await this.pool.query('UPDATE users SET session_version = session_version + 1, updated_at = NOW() WHERE id = $1', [id]);
+    if (result.rowCount !== 1) throw new Error('USER_NOT_FOUND');
   }
 
   private async makeSummary(client: Pool | PoolClient, row: DbProject, viewerId: string): Promise<ProjectSummary> {

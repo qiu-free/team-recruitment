@@ -53,4 +53,14 @@ describe('authentication and profile API', () => {
     await first.app.close();
     await second.close();
   });
+
+  it('invalidates the old session cookie after logout', async () => {
+    const { app, cookie } = await loggedInApp('bob');
+    const logout = await app.inject({ method: 'POST', url: '/api/auth/logout', headers: { cookie } });
+    expect(logout.statusCode).toBe(200);
+
+    const replay = await app.inject({ method: 'GET', url: '/api/auth/me', headers: { cookie } });
+    expect(replay.statusCode).toBe(401);
+    await app.close();
+  });
 });

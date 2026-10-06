@@ -10,7 +10,7 @@ function profile(nickname: string, bio: string, skills: string[], weeklyHours: n
 }
 
 function demoUser(id: string, username: string, data: Profile): User {
-  return { id, username, passwordHash: hashPassword('demo1234'), ...data };
+  return { id, username, passwordHash: hashPassword('demo1234'), sessionVersion: 0, ...data };
 }
 
 export function createDemoStore(): MemoryStore {
@@ -61,6 +61,12 @@ export class MemoryStore implements Store {
     if (!user) throw new Error('USER_NOT_FOUND');
     Object.assign(user, input);
     return user;
+  }
+
+  async invalidateSessions(id: string) {
+    const user = this.users.find((candidate) => candidate.id === id);
+    if (!user) throw new Error('USER_NOT_FOUND');
+    user.sessionVersion += 1;
   }
 
   private projectSummary(project: Project, viewerId: string): ProjectSummary {

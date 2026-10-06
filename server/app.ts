@@ -2,7 +2,7 @@ import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest }
 import cookie from '@fastify/cookie';
 import fastifyStatic from '@fastify/static';
 import { existsSync } from 'node:fs';
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { AppOptions, CreateApplicationInput, CreateProjectInput, Profile, Store } from './types';
@@ -12,6 +12,7 @@ import { hashPassword, verifyPassword } from './security';
 type BodyRequest<T> = FastifyRequest<{ Body: T }>;
 type IdRequest = FastifyRequest<{ Params: { id: string } }>;
 type ProjectApplicationRequest = FastifyRequest<{ Params: { id: string } }>;
+type Session = { userId: string; sessionVersion: number };
 
 const sessionCookie = 'team_session';
 
@@ -78,24 +79,26 @@ function resolveSessionSecret(): string {
   return secret;
 }
 
-function signSession(userId: string, expiresAt: number, secret: string): string {
-  const payload = `${userId}.${expiresAt}`;
+function signSession(userId: string, sessionVersion: number, expiresAt: number, secret: string): string {
+  const payload = `${userId}.${sessionVersion}.${expiresAt}.${randomUUID()}`;
   const signature = createHmac('sha256', secret).update(payload).digest('base64url');
   return `${payload}.${signature}`;
 }
 
-function verifySession(token: string | undefined, secret: string): string | undefined {
+function verifySession(token: string | undefined, secret: string): Session | undefined {
   if (!token) return undefined;
   const parts = token.split('.');
-  if (parts.length !== 3) return undefined;
-  const [userId, expiresAtText, signature] = parts;
+  if (parts.length !== 5) return undefined;
+  const [userId, sessionVersionText, expiresAtText, sessionId, signature] = parts;
+  if (!sessionId) return undefined;
+  const sessionVersion = Number(sessionVersionText);
   const expiresAt = Number(expiresAtText);
-  if (!userId || !Number.isInteger(expiresAt) || expiresAt <= Math.floor(Date.now() / 1000)) return undefined;
-  const expected = createHmac('sha256', secret).update(`${userId}.${expiresAt}`).digest('base64url');
+  if (!userId || !Number.isInteger(sessionVersion) || sessionVersion < 0 || !Number.isInteger(expiresAt) || expiresAt <= Math.floor(Date.now() / 1000)) return undefined;
+  const expected = createHmac('sha256', secret).update(`${userId}.${sessionVersion}.${expiresAt}.${sessionId}`).digest('base64url');
   const actualBuffer = Buffer.from(signature);
   const expectedBuffer = Buffer.from(expected);
   if (actualBuffer.length !== expectedBuffer.length || !timingSafeEqual(actualBuffer, expectedBuffer)) return undefined;
-  return userId;
+  return { userId, sessionVersion };
 }
 
 function requireUserId(request: FastifyRequest, reply: FastifyReply): string | null {
@@ -126,7 +129,12 @@ export async function createApp(options: AppOptions = {}): Promise<FastifyInstan
 
   app.addHook('onRequest', async (request) => {
     const token = request.cookies[sessionCookie];
-    (request as FastifyRequest & { userId?: string }).userId = verifySession(token, secret);
+    const session = verifySession(token, secret);
+    if (!session) return;
+    const user = await store.getUserById(session.userId);
+    if (user?.sessionVersion === session.sessionVersion) {
+      (request as FastifyRequest & { userId?: string }).userId = user.id;
+    }
   });
 
   app.get('/api/health', async () => ({ ok: true, service: 'team-recruitment' }));
@@ -136,12 +144,14 @@ export async function createApp(options: AppOptions = {}): Promise<FastifyInstan
     const password = String(request.body?.password ?? '');
     const user = await store.getUserByUsername(username);
     if (!user || !verifyPassword(password, user.passwordHash)) return sendError(reply, new Error('INVALID_CREDENTIALS'));
-    const token = signSession(user.id, Math.floor(Date.now() / 1000) + sessionLifetimeSeconds, secret);
+    const token = signSession(user.id, user.sessionVersion, Math.floor(Date.now() / 1000) + sessionLifetimeSeconds, secret);
     reply.setCookie(sessionCookie, token, { httpOnly: true, sameSite: 'lax', secure: process.env.COOKIE_SECURE === 'true', path: '/', maxAge: sessionLifetimeSeconds });
     return { user: publicUser(user) };
   });
 
   app.post('/api/auth/logout', async (request, reply) => {
+    const userId = (request as FastifyRequest & { userId?: string }).userId;
+    if (userId) await store.invalidateSessions(userId);
     reply.clearCookie(sessionCookie, { path: '/' });
     return { ok: true };
   });
