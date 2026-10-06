@@ -63,6 +63,12 @@ export class MemoryStore implements Store {
     return user;
   }
 
+  async updatePasswordHash(id: string, passwordHash: string) {
+    const user = this.users.find((candidate) => candidate.id === id);
+    if (!user) throw new Error('USER_NOT_FOUND');
+    user.passwordHash = passwordHash;
+  }
+
   async invalidateSessions(id: string) {
     const user = this.users.find((candidate) => candidate.id === id);
     if (!user) throw new Error('USER_NOT_FOUND');

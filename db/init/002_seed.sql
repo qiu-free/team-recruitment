@@ -1,8 +1,8 @@
 INSERT INTO users (id, username, password_hash, nickname, bio, skills, weekly_hours) VALUES
-('user_a', 'alice', 'sha256:0ead2060b65992dca4769af601a1b3a35ef38cfad2c2c465bb160ea764157c5d', '林知夏', '喜欢把模糊想法做成可以使用的产品。', '["产品设计", "用户研究", "项目管理"]', 10),
-('user_b', 'bob', 'sha256:0ead2060b65992dca4769af601a1b3a35ef38cfad2c2c465bb160ea764157c5d', '周予安', '前端开发学习者，喜欢把复杂交互做得简单。', '["React", "TypeScript", "Web 开发"]', 8),
-('user_c', 'cathy', 'sha256:0ead2060b65992dca4769af601a1b3a35ef38cfad2c2c465bb160ea764157c5d', '许清禾', '正在积累数据可视化和测试实践。', '["Python", "数据可视化", "测试"]', 6),
-('user_d', 'david', 'sha256:0ead2060b65992dca4769af601a1b3a35ef38cfad2c2c465bb160ea764157c5d', '陈默', '希望参与真实项目，负责落地和文档。', '["Node.js", "PostgreSQL", "文档"]', 5)
+('user_a', 'alice', 'scrypt:6X2thVuew_I1_mkKSDx2yQ:zQnr3AmDIASuPIP3pkMls9RJI0V7CNQvpkRiSgiLxTo', '林知夏', '喜欢把模糊想法做成可以使用的产品。', '["产品设计", "用户研究", "项目管理"]', 10),
+('user_b', 'bob', 'scrypt:2w0XA6GM8UGsFbQlOI8VGQ:xUVXSrPlxUOYsaM4Yqb22BZnj17fXwEt6ucrpl_vRSg', '周予安', '前端开发学习者，喜欢把复杂交互做得简单。', '["React", "TypeScript", "Web 开发"]', 8),
+('user_c', 'cathy', 'scrypt:E0IRQe5f-eg2NwXKXYqHmw:8z-pYT9Jv1t-EdPZ6WgZbf7_507Bs8q5ADB6XDPiw44', '许清禾', '正在积累数据可视化和测试实践。', '["Python", "数据可视化", "测试"]', 6),
+('user_d', 'david', 'scrypt:P6YTQsXNYuj8Hl3U_jfVfg:S52g5w9Q0GsTO8g4xyzD2_k43lM1icyXZm0gnJlfM5k', '陈默', '希望参与真实项目，负责落地和文档。', '["Node.js", "PostgreSQL", "文档"]', 5)
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO projects (id, owner_id, title, goal, progress, expected_outcome, recruitment_paused) VALUES

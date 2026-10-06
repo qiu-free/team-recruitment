@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { AppOptions, CreateApplicationInput, CreateProjectInput, Profile, Store } from './types';
 import { createDemoStore } from './memory-store';
-import { hashPassword, verifyPassword } from './security';
+import { hashPassword, needsPasswordRehash, verifyPassword } from './security';
 
 type BodyRequest<T> = FastifyRequest<{ Body: T }>;
 type IdRequest = FastifyRequest<{ Params: { id: string } }>;
@@ -21,7 +21,8 @@ export function resolveClientRoot(): string {
 }
 
 function errorStatus(code: string): number {
-  if (code === 'UNAUTHORIZED') return 401;
+  if (code === 'UNAUTHORIZED' || code === 'INVALID_CREDENTIALS') return 401;
+  if (code === 'LOGIN_RATE_LIMITED') return 429;
   if (code === 'FORBIDDEN' || code === 'OWNER_CANNOT_APPLY' || code === 'RECRUITMENT_PAUSED') return 403;
   if (code === 'NOT_FOUND' || code === 'PROJECT_NOT_FOUND' || code === 'USER_NOT_FOUND') return 404;
   if (code === 'ROLE_FULL') return 409;
@@ -36,7 +37,7 @@ function sendError(reply: FastifyReply, error: unknown) {
     'USER_NOT_FOUND', 'ROLE_FULL', 'PENDING_APPLICATION_EXISTS', 'ALREADY_MEMBER',
     'APPLICATION_ALREADY_PROCESSED', 'INCONSISTENT_APPROVAL', 'UNAUTHORIZED', 'INVALID_CREDENTIALS',
     'INVALID_PROFILE', 'INVALID_PROJECT', 'INVALID_APPLICATION', 'INVALID_RECRUITMENT_STATUS',
-    'REJECTION_REASON_REQUIRED'
+    'REJECTION_REASON_REQUIRED', 'LOGIN_RATE_LIMITED'
   ]);
   const safeCode = known.has(code) ? code : 'BAD_REQUEST';
   return reply.code(errorStatus(safeCode)).send({ error: safeCode, message: friendlyError(safeCode) });
@@ -58,6 +59,7 @@ function friendlyError(code: string): string {
     INVALID_APPLICATION: '请完整填写申请理由和可承担内容。',
     INVALID_RECRUITMENT_STATUS: '招募状态参数不正确。',
     REJECTION_REASON_REQUIRED: '请填写拒绝原因。',
+    LOGIN_RATE_LIMITED: '登录失败次数过多，请稍后再试。',
     INCONSISTENT_APPROVAL: '申请与成员记录不一致，请刷新后重试。',
     USER_NOT_FOUND: '用户不存在。',
     PROJECT_NOT_FOUND: '项目不存在。',
@@ -122,6 +124,9 @@ export async function createApp(options: AppOptions = {}): Promise<FastifyInstan
   const app = Fastify({ logger: false });
   await app.register(cookie);
   const store: Store = options.store ?? createDemoStore();
+  const loginFailures = new Map<string, { count: number; firstFailureAt: number; blockedUntil: number }>();
+  const loginWindowMs = 15 * 60 * 1000;
+  const maxLoginFailures = 5;
   const clientRoot = resolveClientRoot();
   if (existsSync(clientRoot)) {
     await app.register(fastifyStatic, { root: clientRoot, wildcard: false });
@@ -142,8 +147,23 @@ export async function createApp(options: AppOptions = {}): Promise<FastifyInstan
   app.post('/api/auth/login', async (request: BodyRequest<{ username?: string; password?: string }>, reply) => {
     const username = String(request.body?.username ?? '').trim();
     const password = String(request.body?.password ?? '');
+    const loginKey = `${request.ip}:${username.toLocaleLowerCase()}`;
+    const nowMs = Date.now();
+    const current = loginFailures.get(loginKey);
+    if (current && current.blockedUntil > nowMs) return sendError(reply, new Error('LOGIN_RATE_LIMITED'));
+    if (current && nowMs - current.firstFailureAt > loginWindowMs) loginFailures.delete(loginKey);
     const user = await store.getUserByUsername(username);
-    if (!user || !verifyPassword(password, user.passwordHash)) return sendError(reply, new Error('INVALID_CREDENTIALS'));
+    if (!user || !verifyPassword(password, user.passwordHash)) {
+      const failure = loginFailures.get(loginKey);
+      const next = failure && nowMs - failure.firstFailureAt <= loginWindowMs
+        ? { ...failure, count: failure.count + 1 }
+        : { count: 1, firstFailureAt: nowMs, blockedUntil: 0 };
+      if (next.count >= maxLoginFailures) next.blockedUntil = nowMs + loginWindowMs;
+      loginFailures.set(loginKey, next);
+      return sendError(reply, new Error(next.blockedUntil > nowMs ? 'LOGIN_RATE_LIMITED' : 'INVALID_CREDENTIALS'));
+    }
+    loginFailures.delete(loginKey);
+    if (needsPasswordRehash(user.passwordHash)) await store.updatePasswordHash(user.id, hashPassword(password));
     const token = signSession(user.id, user.sessionVersion, Math.floor(Date.now() / 1000) + sessionLifetimeSeconds, secret);
     reply.setCookie(sessionCookie, token, { httpOnly: true, sameSite: 'lax', secure: process.env.COOKIE_SECURE === 'true', path: '/', maxAge: sessionLifetimeSeconds });
     return { user: publicUser(user) };

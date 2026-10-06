@@ -75,6 +75,11 @@ export class PostgresStore implements Store {
     return user(row);
   }
 
+  async updatePasswordHash(id: string, passwordHash: string) {
+    const result = await this.pool.query('UPDATE users SET password_hash = $2, updated_at = NOW() WHERE id = $1', [id, passwordHash]);
+    if (result.rowCount !== 1) throw new Error('USER_NOT_FOUND');
+  }
+
   async invalidateSessions(id: string) {
     const result = await this.pool.query('UPDATE users SET session_version = session_version + 1, updated_at = NOW() WHERE id = $1', [id]);
     if (result.rowCount !== 1) throw new Error('USER_NOT_FOUND');

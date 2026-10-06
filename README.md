@@ -134,5 +134,5 @@ docker compose logs app
 - 页面字体使用 Google Fonts 的 Manrope、DM Mono 和 Playfair Display；如果验收环境无法访问字体 CDN，会回退到本地字体，不影响功能。
 - Demo 会话使用服务端签名 HttpOnly Cookie，签名密钥由 `SESSION_SECRET` 配置；过期后需要重新登录。业务项目、申请、成员和审核结果存储在 PostgreSQL 卷中。
 - 本地 HTTP 验收保持 `COOKIE_SECURE=false`；只有通过 HTTPS 反向代理时才设置为 `true`。
-- 预置账号密码仅用于本题 Demo；当前密码哈希为 SHA-256，不适用于生产环境。
+- 预置账号密码仅用于本题 Demo；新初始化数据使用带随机盐的 scrypt 哈希。已有旧数据在账号成功登录时自动升级密码哈希，仍不应直接用于生产环境。
 - 暂不实现注册、验证码、找回密码、即时聊天、附件、自动匹配、成员退出/踢出和发布后调整角色名额。

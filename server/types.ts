@@ -110,6 +110,7 @@ export type Store = {
   getUserById(id: string): Promise<User | null>;
   getUserByUsername(username: string): Promise<User | null>;
   updateProfile(id: string, profile: Profile): Promise<User>;
+  updatePasswordHash(id: string, passwordHash: string): Promise<void>;
   invalidateSessions(id: string): Promise<void>;
   listProjects(filters: ProjectFilters, viewerId: string): Promise<ProjectSummary[]>;
   getProject(id: string, viewerId: string): Promise<ProjectDetail | null>;
