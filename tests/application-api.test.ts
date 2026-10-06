@@ -46,6 +46,27 @@ describe('project and application workflow', () => {
     await davidApp.close();
   });
 
+  it('prevents a pending application from being bypassed by choosing another role', async () => {
+    const { app, cookie } = await loggedIn('david');
+    const first = await app.inject({
+      method: 'POST',
+      url: '/api/projects/project_open/applications',
+      headers: { cookie },
+      payload: { roleId: 'role_open_research', reason: '我希望参与调研', contribution: '负责访谈记录' }
+    });
+    expect(first.statusCode).toBe(201);
+
+    const second = await app.inject({
+      method: 'POST',
+      url: '/api/projects/project_open/applications',
+      headers: { cookie },
+      payload: { roleId: 'role_open_frontend', reason: '我也想做前端', contribution: '负责页面实现' }
+    });
+    expect(second.statusCode).toBe(409);
+    expect(second.json()).toMatchObject({ error: 'PENDING_APPLICATION_EXISTS' });
+    await app.close();
+  });
+
   it('allows withdrawal and lets the same user apply again after rejection', async () => {
     const store = createDemoStore();
     const { app, cookie } = await (async () => {

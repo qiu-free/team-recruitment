@@ -1,6 +1,6 @@
 # 题目 7 验收清单
 
-> 当前 Docker PostgreSQL 验收基线使用题目要求的三个预置项目；实际 named volume 为 `110_team-recruitment-data`。历史临时验收项目已清理。
+> 当前 Docker PostgreSQL 验收基线使用题目要求的三个预置项目；本机此前生成的实际 named volume 为 `110_team-recruitment-data`（Compose 逻辑卷名为 `team-recruitment-data`，其他项目名可能生成不同前缀）。历史临时验收项目已清理。
 
 ## 测试素材
 
@@ -22,7 +22,7 @@
 
 - 操作：用 bob 申请开放项目，重复申请一次；尝试申请自己的项目、暂停项目和已满角色。
 - 预期：成功申请产生一条待审核记录；重复申请、自己项目、暂停项目、满员角色均由后端拒绝。
-- 实际结果：通过。Docker PostgreSQL 中 bob/cathy 均创建待审核申请；重复申请返回 `409 PENDING_APPLICATION_EXISTS`；alice 申请自己的项目返回 `403 OWNER_CANNOT_APPLY`；已满角色返回 `409 ROLE_FULL`；暂停项目新申请返回 `403 RECRUITMENT_PAUSED`。
+- 实际结果：通过。Docker PostgreSQL 中 bob/cathy 均创建待审核申请；bob 先申请一个角色后再并发申请同项目另一角色，第二次仍返回 `409 PENDING_APPLICATION_EXISTS`；重复申请返回同一错误；alice 申请自己的项目返回 `403 OWNER_CANNOT_APPLY`；已满角色返回 `409 ROLE_FULL`；暂停项目新申请返回 `403 RECRUITMENT_PAUSED`。
 
 ## TEAM-03 撤回与重新申请
 
@@ -58,7 +58,7 @@
 
 - 操作：让申请人撤回与发起人接受尽量同时提交。
 - 预期：最终只能是已撤回且未加入，或已通过且已加入；不能出现撤回但占用名额。
-- 实际结果：通过。申请行锁保证状态转换为单一终态，失败请求返回状态已变化。
+- 实际结果：通过。PostgreSQL 申请行锁和审核事务保证状态转换为单一终态；并发请求最终只出现“withdrawn 且无成员”或“approved 且有成员”，落败请求返回 `APPLICATION_ALREADY_PROCESSED`，不产生假成功。
 
 ## TEAM-09 权限和正文隔离
 
@@ -82,4 +82,4 @@
 
 - 命令：`npm run build`、`npm test`、`docker compose up --build`。
 - 预期：测试通过，镜像构建成功，应用可访问，初始化自动完成。
-- 实际结果：本地代码验证通过。`npm test` 自动执行构建并通过，11 个测试文件、46 个测试用例全部通过；`npm run build` 成功；`git diff --check` 通过。Docker 构建、健康检查和真实 PostgreSQL 并发验证需要在 Docker Desktop Engine 启动后重新执行；本次工作区检查时 Engine 未运行，不能把旧记录当作本轮修复后的实测结果。
+- 实际结果：在允许 esbuild worker 的环境中，`npm test` 自动执行构建并通过，11 个测试文件、48 个测试用例全部通过；`npm run build` 成功；`git diff --check` 通过。Docker Engine 可访问时实测 `docker compose ps` 显示 app 运行、db healthy，`/api/health` 返回 200，`docker compose exec -T app npm run verify:postgres` 输出 one approval、one `ROLE_FULL`、no over-capacity member；只读数据库基线为 3 个项目、4 条成员、2 条申请。若更换环境或代码，应重新执行 Docker 构建、保留卷重建及并发验证。

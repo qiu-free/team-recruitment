@@ -12,6 +12,8 @@ copy .env.example .env
 docker compose up --build
 ```
 
+Linux/macOS 可使用 `cp .env.example .env`；PowerShell 可使用 `Copy-Item .env.example .env`。
+
 打开 <http://localhost:3000>。首次启动时 PostgreSQL 会自动执行 `db/init/001_schema.sql` 和 `db/init/002_seed.sql`，创建表结构和测试素材；应用启动时还会执行幂等数据库迁移，已有数据卷也会补齐会话字段。
 
 Compose 会拒绝使用缺失或过短的 `SESSION_SECRET` 启动。该密钥用于签名登录会话，不要提交 `.env` 或把真实密钥写入仓库。
@@ -36,7 +38,9 @@ npm run build
 npm start
 ```
 
-打开 <http://localhost:3000>。如需使用真实数据库，请配置 `.env` 或环境变量中的 `DATABASE_URL`，再启动服务。
+Linux/macOS 可将 `set` 改为 `export SESSION_SECRET=replace-with-at-least-32-random-characters`。
+
+打开 <http://localhost:3000>。本地 `npm start` 不会自动读取 `.env`；如需使用真实数据库，请先在当前 shell 导出 `DATABASE_URL`（或通过 Compose 启动），再启动服务。
 
 ## 测试账号和预置项目
 
@@ -87,7 +91,7 @@ npm test
 npm run build
 ```
 
-当前自动化测试覆盖：筛选规则、角色余量、预置素材、登录、资料更新、重复申请、暂停招募、申请撤回、权限审核、重复审核和一名额两申请竞争。`npm test` 会先构建前端产物，再执行测试，干净环境可直接运行。
+当前自动化测试共 11 个测试文件、48 个用例，覆盖筛选规则、角色余量、预置素材、登录、资料更新、同一项目跨角色重复申请、暂停招募、申请撤回与审核并发、权限审核、重复审核和一名额两申请竞争。`npm test` 会先构建前端产物，再执行测试；本轮在允许 esbuild worker 的环境中实测通过（11/11 文件、48/48 用例）。
 
 真实 PostgreSQL 并发验证可在 Compose app 容器中执行：
 
@@ -97,7 +101,7 @@ docker compose exec app npm run verify:postgres
 
 脚本会创建临时项目，真实并发接受两条申请，确认最终一条成功、一条 `ROLE_FULL`，并在结束后删除临时项目。
 
-完整验收记录见 `tests/acceptance-checklist.md`，其中包含附件 TEAM-01 到 TEAM-11 及交付验证的操作、预期结果和实际结果。
+完整验收记录见 `tests/acceptance-checklist.md`，其中包含附件 TEAM-01 到 TEAM-11 以及 TEAM-12 交付验证的操作、预期结果和实际结果。
 
 ## Docker 验收记录
 
@@ -108,7 +112,7 @@ docker version
 docker compose version
 ```
 
-当前项目已完成 Docker 构建、PostgreSQL 初始化、核心流程和保留数据卷重建验证。验收环境启动 Engine 后执行：
+Docker Engine 可用时已完成 Docker 构建、PostgreSQL 初始化、核心流程和保留数据卷重建验证。更换环境或代码后，应在 Engine 可用时重新执行以下命令并以命令输出为准：
 
 ```bash
 docker compose up --build -d
@@ -116,7 +120,7 @@ docker compose ps
 docker compose logs app
 ```
 
-验收记录见 `tests/acceptance-checklist.md`。本轮验证使用 named volume `110_team-recruitment-data`；执行 `docker compose down` 后再执行 `docker compose up -d`，项目、申请、成员和角色余量均可继续读取。不要使用 `docker compose down -v`，除非要清空数据重新初始化。
+验收记录见 `tests/acceptance-checklist.md`。本机此前生成的实际 named volume 为 `110_team-recruitment-data`（Compose 逻辑卷名为 `team-recruitment-data`，其他环境会按项目名生成不同前缀）；执行 `docker compose down` 后再执行 `docker compose up -d`，项目、申请、成员和角色余量应继续读取。不要使用 `docker compose down -v`，除非要清空数据重新初始化。
 
 若验收操作已经改变预置素材状态，需要恢复干净基线时执行 `docker compose down -v && docker compose up --build -d`。该命令会删除当前业务数据，只应在重新开始验收时使用。数据库初始化脚本只在新数据卷首次创建时执行。
 
@@ -132,6 +136,7 @@ docker compose logs app
 ## 技术与已知限制
 
 - 前端：React + Vite + TypeScript；后端：Fastify + TypeScript；数据库：PostgreSQL；部署：Docker Compose。
+- 依赖来源：React、Vite、Fastify、`pg` 等均为 npm 开源包；业务规则、权限校验、事务和页面交互为本项目自行实现，未接入需要密钥的第三方服务。
 - 页面字体使用 Google Fonts 的 Manrope、DM Mono 和 Playfair Display；如果验收环境无法访问字体 CDN，会回退到本地字体，不影响功能。
 - Demo 会话使用服务端签名 HttpOnly Cookie，签名密钥由 `SESSION_SECRET` 配置；过期后需要重新登录。业务项目、申请、成员和审核结果存储在 PostgreSQL 卷中。
 - 本地 HTTP 验收保持 `COOKIE_SECURE=false`；只有通过 HTTPS 反向代理时才设置为 `true`。
