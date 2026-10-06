@@ -7,10 +7,14 @@
 环境只需要安装 Docker Desktop，不需要在宿主机安装 Node.js 或 PostgreSQL。
 
 ```bash
+copy .env.example .env
+# 将 .env 中的 SESSION_SECRET 替换为至少 32 个字符的随机值
 docker compose up --build
 ```
 
 打开 <http://localhost:3000>。首次启动时 PostgreSQL 会自动执行 `db/init/001_schema.sql` 和 `db/init/002_seed.sql`，创建表结构和测试素材。
+
+Compose 会拒绝使用缺失或过短的 `SESSION_SECRET` 启动。该密钥用于签名登录会话，不要提交 `.env` 或把真实密钥写入仓库。
 
 停止但保留数据卷：
 

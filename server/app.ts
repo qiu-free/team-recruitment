@@ -66,22 +66,32 @@ function friendlyError(code: string): string {
 }
 
 const sessionLifetimeSeconds = 60 * 60 * 8;
-const sessionSecret = () => process.env.SESSION_SECRET || 'local-development-session-secret';
+const minimumSessionSecretLength = 32;
 
-function signSession(userId: string, expiresAt: number): string {
+function resolveSessionSecret(): string {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === 'test') return 'test-only-session-secret-please-do-not-use';
+    throw new Error('SESSION_SECRET_REQUIRED');
+  }
+  if (secret.length < minimumSessionSecretLength) throw new Error('SESSION_SECRET_TOO_SHORT');
+  return secret;
+}
+
+function signSession(userId: string, expiresAt: number, secret: string): string {
   const payload = `${userId}.${expiresAt}`;
-  const signature = createHmac('sha256', sessionSecret()).update(payload).digest('base64url');
+  const signature = createHmac('sha256', secret).update(payload).digest('base64url');
   return `${payload}.${signature}`;
 }
 
-function verifySession(token: string | undefined): string | undefined {
+function verifySession(token: string | undefined, secret: string): string | undefined {
   if (!token) return undefined;
   const parts = token.split('.');
   if (parts.length !== 3) return undefined;
   const [userId, expiresAtText, signature] = parts;
   const expiresAt = Number(expiresAtText);
   if (!userId || !Number.isInteger(expiresAt) || expiresAt <= Math.floor(Date.now() / 1000)) return undefined;
-  const expected = createHmac('sha256', sessionSecret()).update(`${userId}.${expiresAt}`).digest('base64url');
+  const expected = createHmac('sha256', secret).update(`${userId}.${expiresAt}`).digest('base64url');
   const actualBuffer = Buffer.from(signature);
   const expectedBuffer = Buffer.from(expected);
   if (actualBuffer.length !== expectedBuffer.length || !timingSafeEqual(actualBuffer, expectedBuffer)) return undefined;
@@ -105,6 +115,7 @@ function profileFromBody(body: Partial<Profile>): Profile {
 }
 
 export async function createApp(options: AppOptions = {}): Promise<FastifyInstance> {
+  const secret = resolveSessionSecret();
   const app = Fastify({ logger: false });
   await app.register(cookie);
   const store: Store = options.store ?? createDemoStore();
@@ -115,7 +126,7 @@ export async function createApp(options: AppOptions = {}): Promise<FastifyInstan
 
   app.addHook('onRequest', async (request) => {
     const token = request.cookies[sessionCookie];
-    (request as FastifyRequest & { userId?: string }).userId = verifySession(token);
+    (request as FastifyRequest & { userId?: string }).userId = verifySession(token, secret);
   });
 
   app.get('/api/health', async () => ({ ok: true, service: 'team-recruitment' }));
@@ -125,7 +136,7 @@ export async function createApp(options: AppOptions = {}): Promise<FastifyInstan
     const password = String(request.body?.password ?? '');
     const user = await store.getUserByUsername(username);
     if (!user || !verifyPassword(password, user.passwordHash)) return sendError(reply, new Error('INVALID_CREDENTIALS'));
-    const token = signSession(user.id, Math.floor(Date.now() / 1000) + sessionLifetimeSeconds);
+    const token = signSession(user.id, Math.floor(Date.now() / 1000) + sessionLifetimeSeconds, secret);
     reply.setCookie(sessionCookie, token, { httpOnly: true, sameSite: 'lax', secure: process.env.COOKIE_SECURE === 'true', path: '/', maxAge: sessionLifetimeSeconds });
     return { user: publicUser(user) };
   });
